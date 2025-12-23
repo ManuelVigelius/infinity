@@ -7,6 +7,8 @@ from datasets import load_dataset
 import os
 from PIL import Image
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 
 def download_afhq(output_dir='./data/afhq'):
@@ -38,8 +40,8 @@ def download_afhq(output_dir='./data/afhq'):
             split_dir = os.path.join(output_dir, split_name, label_name)
             os.makedirs(split_dir, exist_ok=True)
 
-        # Save images
-        for idx, item in enumerate(tqdm(split_data, desc=f"Saving {split_name} images")):
+        # Define function to save a single image
+        def save_image(idx, item):
             image = item['image']
             label = item['label']
             label_name = label_names[label]
@@ -57,6 +59,14 @@ def download_afhq(output_dir='./data/afhq'):
                 image = image.convert('RGB')
 
             image.save(image_path, quality=95)
+
+        # Save images in parallel using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            list(tqdm(
+                executor.map(lambda args: save_image(*args), enumerate(split_data)),
+                total=len(split_data),
+                desc=f"Saving {split_name} images"
+            ))
 
     print(f"\n✓ Dataset saved to {output_dir}")
     print("\nDataset structure:")

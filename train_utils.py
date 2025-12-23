@@ -41,7 +41,6 @@ def print_quantized_encoding_dims(model, image, device):
         print(f"Quantized encoding dimensions: {quantized_encoding.shape}")
 
         # Print detailed shape information
-        print(f"  Batch size: {quantized_encoding.shape[0]}")
         print(f"  Channels: {quantized_encoding.shape[1]}")
         print(f"  Height: {quantized_encoding.shape[2]}")
         print(f"  Width: {quantized_encoding.shape[3]}")

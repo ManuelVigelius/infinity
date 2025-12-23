@@ -1,5 +1,6 @@
+import os
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 from autoencoder import AutoEncoder
 from discriminator import Discriminator
@@ -7,7 +8,7 @@ from trainer import Trainer
 from train_utils import get_device, print_quantized_encoding_dims, save_sample_images
 
 
-def get_afhq_dataloaders(data_path, image_size=256, batch_size=32):
+def get_afhq_dataloaders(data_path, image_size=128, batch_size=32):
     """
     Create AFHQ dataloaders.
 
@@ -22,21 +23,20 @@ def get_afhq_dataloaders(data_path, image_size=256, batch_size=32):
     # Transform for AFHQ (RGB images)
     transform = transforms.Compose([
         transforms.Resize(image_size),
-        transforms.CenterCrop(image_size),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to [-1, 1]
     ])
 
-    # AFHQ dataset structure: data_path/train/{cat,dog,wild} and data_path/val/{cat,dog,wild}
-    train_dataset = datasets.ImageFolder(
+    # Load full training dataset
+    full_dataset = datasets.ImageFolder(
         root=f'{data_path}/train',
         transform=transform
     )
 
-    val_dataset = datasets.ImageFolder(
-        root=f'{data_path}/val',
-        transform=transform
-    )
+    # Split into train (95%) and validation (5%)
+    train_size = int(0.95 * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+    train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
 
     train_loader = DataLoader(
         train_dataset,
@@ -61,13 +61,17 @@ def get_afhq_dataloaders(data_path, image_size=256, batch_size=32):
 def main():
     # Hyperparameters
     data_path = './data/afhq'
-    image_size = 256
-    batch_size = 16
+    image_size = 128
+    batch_size = 32
     learning_rate_ae = 1e-4
     learning_rate_disc = 5e-5
     num_epochs = 50
     disc_loss_weight = 0.5
-    disc_start_epoch = 5  # Start discriminator after 5 warmup epochs
+    disc_start_epoch = 15  # Start discriminator after 5 warmup epochs
+
+    # Create directories
+    os.makedirs('checkpoints', exist_ok=True)
+    os.makedirs('samples_afhq', exist_ok=True)
 
     # Device selection
     device = get_device()
@@ -81,10 +85,10 @@ def main():
     autoencoder = AutoEncoder(
         in_channels=3,  # RGB
         channels=128,
-        latent_channels=256,
-        multipliers=[1, 2, 2, 4, 4],  # 256->128->64->32->16->8 spatial dimensions
+        latent_channels=16,
+        multipliers=[1, 2, 4],
         temperature=1.0,
-        flip_prob=0.1,
+        flip_prob=0.05,
         commitment_weight=1.0,
         sample_entropy_weight=0.1,
         codebook_entropy_weight=0.1
@@ -93,15 +97,14 @@ def main():
     # Discriminator - for 256x256 RGB images
     discriminator = Discriminator(
         in_channels=3,  # RGB
-        base_channels=64
+        base_channels=128
     ).to(device)
 
     # Optimizers
     optimizer_ae = torch.optim.AdamW(
         autoencoder.parameters(),
-        lr=learning_rate_ae,
-        betas=(0.5, 0.9)  # Common for GANs
-    )
+        lr=learning_rate_ae
+        )
 
     optimizer_disc = torch.optim.AdamW(
         discriminator.parameters(),

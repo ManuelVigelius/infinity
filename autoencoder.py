@@ -95,7 +95,7 @@ class Encoder(nn.Module):
             out_channels = channels * mult
             # Residual block (transitions from current_channels to out_channels)
             self.down_blocks.append(
-                ResidualBlockSwiGLU(current_channels, out_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
+                ResidualBlockSwish(current_channels, out_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
             )
             # Downsampling (2x2 conv with stride 2)
             self.downsample.append(
@@ -106,8 +106,9 @@ class Encoder(nn.Module):
         # Two final residual blocks (no downsampling)
         final_channels = channels * multipliers[-1]
         self.mid_blocks = nn.ModuleList([
-            ResidualBlockSwiGLU(final_channels, final_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups),
-            ResidualBlockSwiGLU(final_channels, final_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
+            ResidualBlockSwish(final_channels, final_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups),
+            ResidualBlockSwish(final_channels, final_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups),
+            ResidualBlockSwish(final_channels, final_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
         ])
 
         # Final projection
@@ -155,8 +156,9 @@ class Decoder(nn.Module):
 
         # Two initial residual blocks (no upsampling)
         self.mid_blocks = nn.ModuleList([
-            ResidualBlockSwiGLU(initial_channels, initial_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups),
-            ResidualBlockSwiGLU(initial_channels, initial_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
+            ResidualBlockSwish(initial_channels, initial_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups),
+            ResidualBlockSwish(initial_channels, initial_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups),
+            ResidualBlockSwish(initial_channels, initial_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
         ])
 
         # Residual blocks with upsampling (process multipliers in reverse)
@@ -177,7 +179,7 @@ class Decoder(nn.Module):
             )
             # Residual block (transitions from current_channels to target_channels)
             self.up_blocks.append(
-                ResidualBlockSwiGLU(current_channels, target_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
+                ResidualBlockSwish(current_channels, target_channels, kernel_size=kernel_size, padding=padding, num_groups=num_groups)
             )
             current_channels = target_channels
 

@@ -11,7 +11,7 @@ class MultiScaleQuantizer(nn.Module):
         commitment_weight: float = 1.0,
         sample_entropy_weight: float = 1.0,
         codebook_entropy_weight: float = 1.0,
-        downsample_mode: str = 'bilinear',
+        downsample_mode: str = 'area',
     ):
         super().__init__()
         self.dim = dim

@@ -28,7 +28,7 @@ class Discriminator(nn.Module):
     def _make_layer(self, in_channels, out_channels):
         """Create a layer with normalization, swish, convolution with stride 2"""
         return nn.Sequential(
-            nn.GroupNorm(num_groups=32, num_channels=in_channels),
+            nn.GroupNorm(num_groups=8, num_channels=in_channels),
             nn.SiLU(),  # Swish activation
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1)
         )
